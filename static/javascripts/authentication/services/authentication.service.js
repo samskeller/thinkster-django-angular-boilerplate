@@ -22,7 +22,12 @@
          * @desc The Factory to be returned
          */
         var Authentication = {
-            register: register
+            register: register,
+            login: login,
+            getAuthenticatedAccount: getAuthenticatedAccount,
+            isAuthenticated: isAuthenticated,
+            setAuthenticatedAccount: setAuthenticatedAccount,
+            unauthenticate: unauthenticate
         };
 
         return Authentication;
@@ -31,9 +36,9 @@
         /**
          * @name register
          * @desc Try to register a new user
-         * @param {string} username The username entered by the user
-         * @param {string} password The password entered by the user
          * @param {string} email The email entered by the user
+         * @param {string} password The password entered by the user
+         * @param {string} username The username entered by the user
          * @returns {Promise}
          * @memberOf thinkster.authentication.services.Authentication
          */
@@ -43,7 +48,101 @@
                 username: username,
                 password: password,
                 email: email
-            });
+            }).then(registerSuccessFn, registerErrorFn);
+
+            /**
+             * @name registerSuccessFn
+             * @desc Log the new user in
+             */
+            function registerSuccessFn(data, status, headers, config) {
+                Authentication.login(email, password);
+            }
+
+            /**
+             * @name registerErrorFn
+             * @desc Log "Epic failure!" to the console
+             */
+            function registerErrorFn(data, status, headers, config) {
+                console.error('Epic failure!');
+            }
+
+        }
+
+        /**
+         * @name login
+         * @desc Try to login with email 'email' and password 'password'
+         * @param {string} email The email entered by the user
+         * @param {string} password The password entered by the user
+         * @returns {Promise}
+         * @memberOf thinkster.authentication.services.Authentication
+         */
+        function login(email, password) {
+            return $http.post('/api/v1/auth/login/', {
+                email: email,
+                password: password
+            }).then(loginSuccessFn, loginErrorFn);
+
+            /**
+             * @name loginSuccessFn
+             * @desc Set the authenticated account and redirect to index
+             */
+            function loginSuccessFn(data, status, headers, config) {
+                Authentication.setAuthenticatedAccount(data.data);
+                window.location = '/';
+            }
+
+            /**
+             * @name loginErrorFn
+             * @desc Log "Epic failure!" to the console
+             */
+            function loginErrorFn(data, status, headers, config) {
+                console.error('Epic failure!');
+            }
+        }
+
+        /**
+         * @name getAuthenticatedAccount
+         * @desc Return the currently authenticated account
+         * @returns {object|undefined} Account if authenticated, else 'undefined'
+         * @memberOf thinkster.authentication.services.Authentication
+         */
+        function getAuthenticatedAccount() {
+            if (!$cookies.authenticatedAccount) {
+                return;
+            }
+
+            return JSON.parse($cookies.authenticatedAccount);
+        }
+
+        /**
+         * @name isAuthenticated
+         * @desc Check if the current user is authenticated
+         * @returns {boolean} True if user is authenticated, else False
+         * @memberOf thinkster.authentication.services.Authentication
+         */
+        function isAuthenticated() {
+            return !!$cookies.authenticatedAccount;
+        }
+
+        /**
+         * @name setAuthenticatedAccount
+         * @desc Stringify the Account object and store it in a cookie
+         * @param {object} user The account object to be stored
+         * @returns {undefined}
+         * @memberOf thinkster.authentication.services.Authentication
+         */
+        function setAuthenticatedAccount(account) {
+            $cookies.authenticatedAccount = JSON.stringify(account);
+        }
+
+        /**
+         * @name unauthenticate
+         * @desc Delete the cookie where the user object is stored
+         * @returns {undefined}
+         * @memberOf thinkster.authentication.services.Authentication
+         */
+        function unauthenticate() {
+            delete $cookies.authenticatedAccount;
         }
     }
 })();
